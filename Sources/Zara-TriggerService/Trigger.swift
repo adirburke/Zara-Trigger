@@ -3,7 +3,7 @@ import projectConstants
 
 
 public class TriggerService {
-    public var console : Bool = true
+    let console : Bool
     public private(set) var triggers = [Trigger]()
     
     public func add(_ trigger : Trigger) {
@@ -12,7 +12,7 @@ public class TriggerService {
         } else {
             let timer = Timer(fireAt: trigger.date, interval: 0, target: self, selector: #selector(nonConsoleRun(timer:)), userInfo: ["trigger" : trigger], repeats: false)
             
-            RunLoop.main.add(timer, forMode: .commonModes)
+            RunLoop.main.add(timer, forMode: .common)
         }
     }
     public func delete(_ i : Int) {
@@ -36,8 +36,8 @@ public class TriggerService {
     }
     
     
-    init() {
-        
+    public init(console : Bool) {
+        self.console = console
     }
 }
 
@@ -62,9 +62,9 @@ public class Trigger {
         return nextRun
     }
     
-    var lastrun : Date
+    public var lastrun : Date
     let date : Date
-    let type : timerType
+    public let type : timerType
     let complete : (()->())?
     
     init(date : Date, last: Date, type : timerType, complete : (()->())? = nil) {
@@ -83,7 +83,7 @@ public class Trigger {
     ///     - last: Last Time the timer was ran (use for Every 30 seconds only)
     /// - Returns: The Trigger for the next avaiable time for hour/min for that timer type
     
-    convenience init?(hour: Int, min: Int, type: timerType, lastrun: Date? = nil, complete: (()->())? = nil) {
+     public convenience init?(hour: Int, min: Int, type: timerType, lastrun: Date? = nil, complete: (()->())? = nil) {
         
         
         let userCalender = NSCalendar.current
