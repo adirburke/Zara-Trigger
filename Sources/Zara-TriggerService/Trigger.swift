@@ -1,44 +1,26 @@
 import Foundation
 import projectConstants
 
+public typealias TriggerCompletion = ((Trigger)->())
 
 public class TriggerService {
-    let console : Bool
-    public private(set) var triggers = [Trigger]()
+    var operationQueue = DispatchQueue(label: "service.trigger")
     
     public func add(_ trigger : Trigger) {
-        if console {
-            triggers.append(trigger)
-        } else {
-            let timer = Timer(fireAt: trigger.date, interval: 0, target: self, selector: #selector(nonConsoleRun(timer:)), userInfo: ["trigger" : trigger], repeats: false)
-            
-            RunLoop.main.add(timer, forMode: .common)
+        
+        
+        let timeFromNow = trigger.date.timeIntervalSince(Date())
+        print(timeFromNow); #warning("Need to work out what to do with DayLight Saving")
+        operationQueue.asyncAfter(deadline: .now() + timeFromNow) {
+            let newTrigger = try! self.run(trigger)
+            self.add(newTrigger)
         }
     }
-    public func delete(_ i : Int) {
-        triggers.remove(at: i)
+    func run(_ trigger : Trigger) throws -> Trigger {
+        trigger.complete(trigger)
+        return try trigger.makeNextTrigger()
     }
-    
-    @objc public func nonConsoleRun(timer : Timer) {
-        guard let uI = timer.userInfo! as? [String:Any], let trigger = uI["trigger"] as? Trigger else {
-            print("Unknown \'type\' in testLoop")
-            return
-        }
-        add(trigger.makeNextTrigger()!)
-        trigger.complete?()
-    }
-    
-    public func run(_ trigger : Trigger) -> Trigger? {
-        return trigger.makeNextTrigger()
-    }
-    public func check(_ trigger : Trigger) -> Bool {
-        return Date() > trigger.date
-    }
-    
-    
-    public init(console : Bool) {
-        self.console = console
-    }
+    public init() {}
 }
 
 public class Trigger {
@@ -65,13 +47,17 @@ public class Trigger {
     public var lastrun : Date
     let date : Date
     public let type : timerType
-    let complete : (()->())?
+    let complete : TriggerCompletion
     
-    init(date : Date, last: Date, type : timerType, complete : (()->())? = nil) {
+    init(date : Date, last: Date, type : timerType, complete : @escaping TriggerCompletion) {
         self.date = date
         self.type = type
         self.lastrun = last
         self.complete = complete
+    }
+    
+    enum TriggerError : Error {
+        case cantCreateDate
     }
     
     /// MAKE A NEW TIMER
@@ -83,7 +69,7 @@ public class Trigger {
     ///     - last: Last Time the timer was ran (use for Every 30 seconds only)
     /// - Returns: The Trigger for the next avaiable time for hour/min for that timer type
     
-     public convenience init?(hour: Int, min: Int, type: timerType, lastrun: Date? = nil, complete: (()->())? = nil) {
+    public convenience init(hour: Int, min: Int, type: timerType, lastrun: Date? = nil, complete: @escaping TriggerCompletion) throws {
         
         
         let userCalender = NSCalendar.current
@@ -103,7 +89,7 @@ public class Trigger {
             dateComp.minute = min
             guard let nextSunday = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
                 print("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
-                return nil
+                throw TriggerError.cantCreateDate
             }
             
             date = nextSunday
@@ -116,16 +102,16 @@ public class Trigger {
                 dateComp.minute = min
                 guard let nextRun = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
                     print("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
-                    return nil
+                    throw TriggerError.cantCreateDate
                 }
-                
+
                 date = nextRun
             } else if date >= Trigger.finishDate! { //Checks to see if FinishTime has passed, if so creates new start
                 dateComp.hour = hour
                 dateComp.minute = min
                 guard let nextStart = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
                     print("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
-                    return nil
+                    throw TriggerError.cantCreateDate
                 }
                 date = nextStart
             } else { // Just starts at the next XX:XX:30
@@ -137,7 +123,7 @@ public class Trigger {
                 
                 guard let nextStart = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
                     print("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
-                    return nil
+                    throw TriggerError.cantCreateDate
                 }
                 
                 date = nextStart
@@ -148,7 +134,7 @@ public class Trigger {
             dateComp.minute = min
             guard let nextRun = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
                 print("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
-                return nil
+                throw TriggerError.cantCreateDate
             }
             
             date = nextRun
@@ -163,7 +149,7 @@ public class Trigger {
         
     }
     
-    func makeNextTrigger(complete: (()->())? = nil) -> Trigger? {
+    func makeNextTrigger() throws -> Trigger {
         
         let dateFormatter = Globals.Date.TimeStamp
         let userCalender = NSCalendar.current
@@ -179,7 +165,7 @@ public class Trigger {
             dateComp.weekday = 1
             guard let nextSunday = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
                 print("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
-                return nil
+                 throw TriggerError.cantCreateDate
             }
             date = nextSunday
             
@@ -190,7 +176,7 @@ public class Trigger {
                 dateComp2.minute = 30
                 guard let nextStart = userCalender.nextDate(after: date, matching: dateComp2, matchingPolicy: .nextTime) else {
                     print("testEveryHalfMinute> nextStart")
-                    return nil
+                     throw TriggerError.cantCreateDate
                 }
                 date = nextStart
                 lastRun = nextStart
@@ -209,7 +195,7 @@ public class Trigger {
         let dateString = dateFormatter.string(from: self.date)
         let dateString2 = dateFormatter.string(from: date)
         print("Triggered \(dateString) - Next Trigger \(dateString2)")
-        return Trigger(date: date, last: lastRun, type: self.type, complete: self.complete)
+        return try Trigger(date: date, last: lastRun, type: self.type, complete: self.complete)
     }
     
 }
