@@ -1,7 +1,7 @@
 import Foundation
 import projectConstants
 
-public typealias TriggerCompletion = ((Trigger)->())
+public typealias TriggerCompletion = ((Trigger) throws ->())
 
 public class TriggerService {
     var operationQueue = DispatchQueue(label: "service.trigger")
@@ -17,7 +17,7 @@ public class TriggerService {
         }
     }
     func run(_ trigger : Trigger) throws -> Trigger {
-        trigger.complete(trigger)
+        try trigger.complete(trigger)
         return try trigger.makeNextTrigger()
     }
     public init() {}
@@ -195,7 +195,7 @@ public class Trigger {
         let dateString = dateFormatter.string(from: self.date)
         let dateString2 = dateFormatter.string(from: date)
         print("Triggered \(dateString) - Next Trigger \(dateString2)")
-        return try Trigger(date: date, last: lastRun, type: self.type, complete: self.complete)
+        return Trigger(date: date, last: lastRun, type: self.type, complete: self.complete)
     }
     
 }
