@@ -185,9 +185,10 @@ public class Trigger {
                 date = userCalender.date(from: dateComp)!
             }
             UserDefaults.standard.set(self.lastrun.timeStamp(), forKey: "lastrun")
-        default:
+        case .CleaningSchedule, .Daily:
             dateComp.day = dateComp.day! + 1
             date = userCalender.date(from: dateComp)!
+        case .none: break;
         }
         
         
