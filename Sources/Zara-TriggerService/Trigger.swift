@@ -13,11 +13,15 @@ public class TriggerService {
         print(timeFromNow); #warning("Need to work out what to do with DayLight Saving")
         operationQueue.asyncAfter(deadline: .now() + timeFromNow) {
             let newTrigger = try! self.run(trigger)
-            self.add(newTrigger)
+            if trigger.type != .none {
+                self.add(newTrigger)
+            }
+            
         }
     }
     func run(_ trigger : Trigger) throws -> Trigger {
         try trigger.complete(trigger)
+        
         return try trigger.makeNextTrigger()
     }
     public init() {}
@@ -49,7 +53,7 @@ public class Trigger {
     public let type : timerType
     let complete : TriggerCompletion
     
-    init(date : Date, last: Date, type : timerType, complete : @escaping TriggerCompletion) {
+    public init(date : Date, last: Date, type : timerType, complete : @escaping TriggerCompletion) {
         self.date = date
         self.type = type
         self.lastrun = last
@@ -188,7 +192,7 @@ public class Trigger {
         case .CleaningSchedule, .Daily:
             dateComp.day = dateComp.day! + 1
             date = userCalender.date(from: dateComp)!
-        case .none: break;
+        case .none: return Trigger();
         }
         
         
@@ -198,5 +202,12 @@ public class Trigger {
         print("Triggered \(dateString) - Next Trigger \(dateString2)")
         return Trigger(date: date, last: lastRun, type: self.type, complete: self.complete)
     }
+ 
     
+    init() {
+        lastrun = Date()
+        date = Date()
+        type = .none
+        complete = { _ in return}
+    }
 }
