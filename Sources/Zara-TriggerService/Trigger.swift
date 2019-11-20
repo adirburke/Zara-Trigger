@@ -14,7 +14,7 @@ public class TriggerService {
     public func add(_ trigger : Trigger) -> DispatchWorkItem {
         
         let timeFromNow = trigger.date.timeIntervalSince(Date())
-        print(timeFromNow); #warning("Need to work out what to do with DayLight Saving")
+//        print(timeFromNow); #warning("Need to work out what to do with DayLight Saving")
         
         let workItem = DispatchWorkItem {
             let newTrigger = try! self.run(trigger)
