@@ -3,22 +3,29 @@ import projectConstants
 
 public typealias TriggerCompletion = ((Trigger) throws ->())
 
+
+
+
 public class TriggerService {
     var operationQueue = DispatchQueue(label: "service.trigger")
     
-    public func add(_ trigger : Trigger) {
-        
+
+    @discardableResult
+    public func add(_ trigger : Trigger) -> DispatchWorkItem {
         
         let timeFromNow = trigger.date.timeIntervalSince(Date())
         print(timeFromNow); #warning("Need to work out what to do with DayLight Saving")
-        operationQueue.asyncAfter(deadline: .now() + timeFromNow) {
+        
+        let workItem = DispatchWorkItem {
             let newTrigger = try! self.run(trigger)
             if trigger.type != .none {
                 self.add(newTrigger)
             }
-            
         }
+        operationQueue.asyncAfter(deadline: .now() + timeFromNow, execute: workItem)
+       return workItem
     }
+    
     func run(_ trigger : Trigger) throws -> Trigger {
         try trigger.complete(trigger)
         
