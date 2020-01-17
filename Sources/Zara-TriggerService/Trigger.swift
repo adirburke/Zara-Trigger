@@ -195,7 +195,8 @@ public class Trigger {
                 dateComp.second = dateComp.second! + 30
                 date = userCalender.date(from: dateComp)!
             }
-            UserDefaults.standard.set(self.lastrun.timeStamp(), forKey: "lastrun")
+            UserDefaultsAlt.default.set(self.lastrun.timeStamp(), forKey: "lastrun")
+            
         case .CleaningSchedule, .Daily:
             dateComp.day = dateComp.day! + 1
             date = userCalender.date(from: dateComp)!
