@@ -105,6 +105,17 @@ public class Trigger {
             
             date = nextSunday
             
+        case .TodayWeekly:
+            
+            dateComp.weekday = 4
+            dateComp.hour = hour
+            dateComp.minute = min
+            guard let nextSunday = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
+                print("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
+                throw TriggerError.cantCreateDate
+            }
+            
+            date = nextSunday
             
         case .everyHalfMinute:
             
@@ -172,9 +183,11 @@ public class Trigger {
         
         switch self.type {
         case .SundayWeekly:
-            
-            dateComp.weekday = 1
-            guard let nextSunday = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
+             var dateComp2 = DateComponents()
+            dateComp2.weekday = 1
+            dateComp2.hour = dateComp.hour
+            dateComp2.minute = dateComp.minute
+            guard let nextSunday = userCalender.nextDate(after: date, matching: dateComp2, matchingPolicy: .nextTime) else {
                 print("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
                  throw TriggerError.cantCreateDate
             }
@@ -201,6 +214,18 @@ public class Trigger {
             dateComp.day = dateComp.day! + 1
             date = userCalender.date(from: dateComp)!
         case .none: return Trigger();
+        case .TodayWeekly:
+            var dateComp2 = DateComponents()
+            
+            dateComp2.weekday = 4
+            dateComp2.hour = dateComp.hour
+            dateComp2.minute = dateComp.minute
+            print(dateComp, dateComp2)
+            guard let nextSunday = userCalender.nextDate(after: date, matching: dateComp2, matchingPolicy: .nextTime) else {
+                print("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
+                 throw TriggerError.cantCreateDate
+            }
+            date = nextSunday
         }
         
         
