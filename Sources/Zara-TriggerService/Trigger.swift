@@ -211,11 +211,13 @@ public class Trigger {
                 }
                 date = nextStart
                 lastRun = nextStart
+                UserDefaultsAlt.default.set(date.timeStamp(), forKey: "lastrun")
             } else {
                 dateComp.second = dateComp.second! + 30
                 date = userCalender.date(from: dateComp)!
+                UserDefaultsAlt.default.set(self.lastrun.timeStamp(), forKey: "lastrun")
             }
-            UserDefaultsAlt.default.set(self.lastrun.timeStamp(), forKey: "lastrun")
+//            UserDefaultsAlt.default.set(self.lastrun.timeStamp(), forKey: "lastrun")
             
         case .CleaningSchedule, .Daily:
             dateComp.day = dateComp.day! + 1
