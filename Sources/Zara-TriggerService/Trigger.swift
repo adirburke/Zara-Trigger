@@ -203,8 +203,8 @@ public class Trigger {
         case .everyHalfMinute:
             if date >= Trigger.finishDate! {
                 var dateComp2 = DateComponents()
-                dateComp2.hour = 5
-                dateComp2.minute = 30
+                dateComp2.hour = 0
+                dateComp2.minute = 0
                 guard let nextStart = userCalender.nextDate(after: date, matching: dateComp2, matchingPolicy: .nextTime) else {
                     logger.logMessage("testEveryHalfMinute> nextStart")
                      throw TriggerError.cantCreateDate
