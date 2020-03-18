@@ -209,9 +209,16 @@ public class Trigger {
                     logger.logMessage("testEveryHalfMinute> nextStart")
                      throw TriggerError.cantCreateDate
                 }
-                date = nextStart
+                var dateComp3 = DateComponents()
+                dateComp3.hour = 4
+                dateComp3.minute = 30
+                guard let nextStart2 = userCalender.nextDate(after: date, matching: dateComp2, matchingPolicy: .nextTime) else {
+                    logger.logMessage("testEveryHalfMinute> nextStart")
+                     throw TriggerError.cantCreateDate
+                }
+                date = nextStart2
                 lastRun = nextStart
-                UserDefaultsAlt.default.set(date.timeStamp(), forKey: "lastrun")
+                UserDefaultsAlt.default.set(lastRun.timeStamp(), forKey: "lastrun")
             } else {
                 dateComp.second = dateComp.second! + 30
                 date = userCalender.date(from: dateComp)!
