@@ -47,8 +47,8 @@ public class Trigger {
         
         dateComp.calendar = userCalender
         
-        dateComp2.hour = 21
-        dateComp2.minute = 0
+        dateComp2.hour = 23
+        dateComp2.minute = 30
         
         guard let nextRun = userCalender.date(from: dateComp2) else {
             return nil
