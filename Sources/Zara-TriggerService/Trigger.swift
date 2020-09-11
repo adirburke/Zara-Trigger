@@ -158,6 +158,36 @@ public class Trigger {
                 date = nextStart
             }
             
+        case .EveryMinute:
+                
+                if currentHour < hour { // Checks to see if StartTime has passed, if not makes the Timer for the startTime 5 am
+                    dateComp.hour = hour
+                    dateComp.minute = min
+                    guard let nextRun = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
+                        logger.logMessage("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
+                        throw TriggerError.cantCreateDate
+                    }
+
+                    date = nextRun
+                } else if date >= Trigger.finishDate! { //Checks to see if FinishTime has passed, if so creates new start
+                    dateComp.hour = hour
+                    dateComp.minute = min
+                    guard let nextStart = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
+                        logger.logMessage("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
+                        throw TriggerError.cantCreateDate
+                    }
+                    date = nextStart
+                } else { // Just starts at the next XX:XX:30
+                    dateComp.second = 0
+                    
+                    guard let nextStart = userCalender.nextDate(after: date, matching: dateComp, matchingPolicy: .nextTime) else {
+                        logger.logMessage("THERE IS NO SUNDAY AFTER TODAY, BE WORRIED")
+                        throw TriggerError.cantCreateDate
+                    }
+                    
+                    date = nextStart
+                }
+            
         default:
             dateComp.hour = hour
             dateComp.minute = min
@@ -199,7 +229,30 @@ public class Trigger {
                  throw TriggerError.cantCreateDate
             }
             date = nextSunday
-            
+        case .EveryMinute:
+            if date >= Trigger.finishDate! {
+                var dateComp2 = DateComponents()
+                dateComp2.hour = 0
+                dateComp2.minute = 0
+                guard let nextStart = userCalender.nextDate(after: date, matching: dateComp2, matchingPolicy: .nextTime) else {
+                    logger.logMessage("EveryMinute> nextStart")
+                     throw TriggerError.cantCreateDate
+                }
+                var dateComp3 = DateComponents()
+                dateComp3.hour = 4
+                dateComp3.minute = 30
+                guard let nextStart2 = userCalender.nextDate(after: date, matching: dateComp2, matchingPolicy: .nextTime) else {
+                    logger.logMessage("EveryMinute> nextStart")
+                     throw TriggerError.cantCreateDate
+                }
+                date = nextStart2
+                lastRun = nextStart
+                UserDefaultsAlt.default.set(lastRun.timeStamp(), forKey: "lastrun")
+            } else {
+                dateComp.second = dateComp.second! + 60
+                date = userCalender.date(from: dateComp)!
+                UserDefaultsAlt.default.set(self.lastrun.timeStamp(), forKey: "lastrun")
+            }
         case .everyHalfMinute:
             if date >= Trigger.finishDate! {
                 var dateComp2 = DateComponents()
