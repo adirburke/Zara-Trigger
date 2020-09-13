@@ -1,5 +1,5 @@
 import Foundation
-import projectConstants
+import Common
 
 import Zara_Logger
 
