@@ -36,6 +36,14 @@ public class TriggerService {
     }
 }
 
+public enum TriggerError : Error {
+    case cantCreateDate
+    
+    public var localizedDescription : String {
+        return "TriggerError - cantCreateDate"
+    }
+}
+
 public class Trigger {
     
     static var finishDate : Date? {
@@ -72,9 +80,7 @@ public class Trigger {
         self.logger = logger
     }
     
-    enum TriggerError : Error {
-        case cantCreateDate
-    }
+
     
     /// MAKE A NEW TIMER
     ///
