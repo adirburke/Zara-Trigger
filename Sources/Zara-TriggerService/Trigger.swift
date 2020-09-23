@@ -1,37 +1,53 @@
 import Foundation
 import Common
-
+import NIO
 import Zara_Logger
 
-public typealias TriggerCompletion = ((Trigger) throws ->())
-
+//public typealias TriggerCompletion = ((Trigger) throws -> () )
+public typealias TriggerCompletion = ((Trigger) throws -> EventLoopFuture<Void>)?
 
 public class TriggerService {
     var operationQueue = DispatchQueue(label: "service.trigger")
-    let mainLogger : Zara_Logger.LogService
-
+    public let mainLogger : LogService
+    
     @discardableResult
     public func add(_ trigger : Trigger) -> DispatchWorkItem {
         
         let timeFromNow = trigger.date.timeIntervalSince(Date())
-//        print(timeFromNow); #warning("Need to work out what to do with DayLight Saving")
+        //        print(timeFromNow); #warning("Need to work out what to do with DayLight Saving")
         
         let workItem = DispatchWorkItem {
-            let newTrigger = try! self.run(trigger)
-            if trigger.type != .none {
-                self.add(newTrigger)
-            }
+            self.run(trigger)
         }
         operationQueue.asyncAfter(deadline: .now() + timeFromNow, execute: workItem)
         return workItem
     }
     
-    func run(_ trigger : Trigger) throws -> Trigger {
-        try trigger.complete(trigger)
-        
-        return try trigger.makeNextTrigger()
+    func run(_ trigger : Trigger)  {
+        do {
+            try trigger.complete?(trigger).whenComplete { r in
+                if trigger.type != .none {
+                    switch r {
+                    case .success(_):
+                        self.add( (try? trigger.makeNextTrigger()) ?? Trigger())
+                    case .failure(let error):
+                        self.mainLogger.logMessage("\(#function), \(error.localizedDescription)")
+                        let returnTrigger = (try? trigger.makeNextTrigger(lastrun: trigger.lastrun)) ?? Trigger()
+                        self.add( returnTrigger)
+                    }
+                    
+                }
+            }
+        } catch {
+            self.mainLogger.logMessage("\(#function), \(error.localizedDescription)")
+            if trigger.type != .none {
+                let returnTrigger = (try? trigger.makeNextTrigger(lastrun: trigger.lastrun)) ?? Trigger()
+                self.add( returnTrigger)
+            }
+        }
     }
-    public init(name: String = "TriggerService") {
+    
+    public init(name: String = "TriggerServiceTest") {
         mainLogger = LogService(name: name)
     }
 }
@@ -72,7 +88,7 @@ public class Trigger {
     
     let logger : LogService
     
-    public init(date : Date, last: Date, type : timerType, complete : @escaping TriggerCompletion, logger : LogService = .init(name: "TriggerService")) {
+    public init(date : Date, last: Date, type : timerType, complete : TriggerCompletion, logger : LogService = .init(name: "TriggerService3", withStart: false)) {
         self.date = date
         self.type = type
         self.lastrun = last
@@ -91,7 +107,7 @@ public class Trigger {
     ///     - last: Last Time the timer was ran (use for Every 30 seconds only)
     /// - Returns: The Trigger for the next avaiable time for hour/min for that timer type
     
-    public convenience init(hour: Int, min: Int, type: timerType, lastrun: Date? = nil, complete: @escaping TriggerCompletion, logger : LogService = .init(name: "TriggerService")) throws {
+    public convenience init(hour: Int, min: Int, type: timerType, lastrun: Date? = nil, complete: TriggerCompletion, logger : LogService) throws {
         
         
         let userCalender = NSCalendar.current
@@ -209,18 +225,18 @@ public class Trigger {
         let dateFormatter = Globals.Date.TimeStamp
         let dateString = dateFormatter.string(from: date)
         
-        logger.logMessage("Started Timer :  \(dateString)")
+        logger.logMessage("\(type) Started Timer :  \(dateString)")
         self.init(date: date, last: lastrun ?? Date(), type: type, complete: complete, logger: logger)
         
     }
     
-    func makeNextTrigger() throws -> Trigger {
+    func makeNextTrigger(lastrun : Date? = nil) throws -> Trigger {
         
         let dateFormatter = Globals.Date.TimeStamp
         let userCalender = NSCalendar.current
         
         var date = Date()
-        var lastRun = self.date
+        var lastRun = lastrun ?? self.date
         
         var dateComp = userCalender.dateComponents([.year, .month, .day, .hour, .minute, .second], from: self.date)
         
@@ -245,9 +261,9 @@ public class Trigger {
                      throw TriggerError.cantCreateDate
                 }
                 var dateComp3 = DateComponents()
-                dateComp3.hour = 4
+                dateComp3.hour = 5
                 dateComp3.minute = 30
-                guard let nextStart2 = userCalender.nextDate(after: date, matching: dateComp2, matchingPolicy: .nextTime) else {
+                guard let nextStart2 = userCalender.nextDate(after: date, matching: dateComp3, matchingPolicy: .nextTime) else {
                     logger.logMessage("EveryMinute> nextStart")
                      throw TriggerError.cantCreateDate
                 }
@@ -257,7 +273,7 @@ public class Trigger {
             } else {
                 dateComp.second = dateComp.second! + 60
                 date = userCalender.date(from: dateComp)!
-                UserDefaultsAlt.default.set(self.lastrun.timeStamp(), forKey: "lastrun")
+                UserDefaultsAlt.default.set(lastRun.timeStamp(), forKey: "lastrun")
             }
         case .everyHalfMinute:
             if date >= Trigger.finishDate! {
@@ -269,7 +285,7 @@ public class Trigger {
                      throw TriggerError.cantCreateDate
                 }
                 var dateComp3 = DateComponents()
-                dateComp3.hour = 4
+                dateComp3.hour = 5
                 dateComp3.minute = 30
                 guard let nextStart2 = userCalender.nextDate(after: date, matching: dateComp2, matchingPolicy: .nextTime) else {
                     logger.logMessage("testEveryHalfMinute> nextStart")
@@ -288,7 +304,8 @@ public class Trigger {
         case .CleaningSchedule, .Daily:
             dateComp.day = dateComp.day! + 1
             date = userCalender.date(from: dateComp)!
-        case .none: return Trigger();
+        case .none:
+            return Trigger();
         case .TodayWeekly:
             var dateComp2 = DateComponents()
             
@@ -307,16 +324,23 @@ public class Trigger {
         
         let dateString = dateFormatter.string(from: self.date)
         let dateString2 = dateFormatter.string(from: date)
-        logger.logMessage("Triggered \(dateString) - Next Trigger \(dateString2)")
-        return Trigger(date: date, last: lastRun, type: self.type, complete: self.complete)
+        switch self.type {
+        case .EveryMinute, .everyHalfMinute:
+            logger.logMessage("--\(self.type) Triggered \(dateString) - Next Trigger \(dateString2) - withLastRun: \(lastRun.timeStamp())")
+        default:
+            logger.logMessage("--\(self.type) Triggered \(dateString) - Next Trigger \(dateString2)")
+        }
+        
+        
+        return Trigger(date: date, last: lastRun, type: self.type, complete: self.complete, logger: self.logger)
     }
  
     
-    init(logger : LogService = .init(name: "TriggerService")) {
+    init(logger : LogService = .init(name: "TriggerService4")) {
         lastrun = Date()
         date = Date()
         type = .none
-        complete = { _ in return}
+        complete = nil
         self.logger = logger
     }
 }
