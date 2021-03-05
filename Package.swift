@@ -4,6 +4,8 @@
 import PackageDescription
 import Foundation
 
+let package : Package
+
 #if os(Linux)
 let isLinux = true
 #else
@@ -16,7 +18,7 @@ if isLinux && app != "" {
 let username = ProcessInfo.processInfo.environment["GITHUBNAME"] ?? ""
 let password =  ProcessInfo.processInfo.environment["GITHUBSECRET"] ?? ""
 
-let package = Package(
+package = Package(
     name: "Zara-Trigger",
     platforms: [
         .macOS(.v10_15),
@@ -48,7 +50,7 @@ let package = Package(
     ]
 )
 } else {
-let package = Package(
+package = Package(
     name: "Zara-Trigger",
     platforms: [
         .macOS(.v10_15),
