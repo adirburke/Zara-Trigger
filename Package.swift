@@ -33,7 +33,7 @@ package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(name: "Common", url: "https://\(username):\(password)@github.com/HanavePtyLtd/projectConstants.git", .branch("master")),
+        .package(name: "Common", url: "https://\(username):\(password)@github.com/HanavePtyLtd/projectConstants.git", .branch("main")),
         .package(url: "https://\(username):\(password)@github.com/adirburke/Zara-Logger.git", .branch("master")),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.11.0"),
 
@@ -65,7 +65,7 @@ package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(name: "Common", url: "https://github.com/HanavePtyLtd/projectConstants.git", .branch("master")),
+        .package(name: "Common", url: "https://github.com/HanavePtyLtd/projectConstants.git", .branch("main")),
         .package(url: "https://github.com/adirburke/Zara-Logger.git", .branch("master")),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.11.0"),
 
